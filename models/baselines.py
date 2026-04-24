@@ -55,7 +55,7 @@ def _run_prequential(model, train_stream, test_stream, dataset_info,
     y_prob = np.array(y_prob_list)
 
     macro_f1 = f1_score(y_true, y_pred, average='macro', zero_division=0)
-    gmean    = compute_gmean(y_true, y_pred)
+    gmean    = compute_gmean(y_true, y_pred, labels=list(range(n_classes)))
     auc      = compute_auc(y_true, y_prob, n_classes)
 
     report  = classification_report(y_true, y_pred, output_dict=True, zero_division=0)
@@ -180,7 +180,7 @@ def run_static_xgboost(train_stream, test_stream, dataset_info, verbose=True):
     y_prob = model.predict_proba(X_test)
 
     macro_f1 = f1_score(y_true, y_pred, average='macro', zero_division=0)
-    gmean    = compute_gmean(y_true, y_pred)
+    gmean    = compute_gmean(y_true, y_pred, labels=list(range(n_classes)))
     auc      = compute_auc(y_true, y_prob, n_classes)
 
     report  = classification_report(y_true, y_pred, output_dict=True, zero_division=0)

@@ -41,20 +41,22 @@ class ExperimentResult:
 # ─────────────────────────────────────────────
 # 工具函数
 # ─────────────────────────────────────────────
-def compute_gmean(y_true, y_pred) -> float:
-    """几何平均数（G-mean），适用于多类不平衡"""
-    cm = confusion_matrix(y_true, y_pred)
-    # 每类的 recall = TP / (TP + FN)
-    per_class_recall = []
-    for i in range(len(cm)):
-        denom = cm[i].sum()
-        per_class_recall.append(cm[i, i] / denom if denom > 0 else 0.0)
-    per_class_recall = np.array(per_class_recall)
-    # 过滤掉 0（该类在测试集中不存在）
-    nonzero = per_class_recall[per_class_recall > 0]
-    if len(nonzero) == 0:
+def compute_gmean(y_true, y_pred, labels=None) -> float:
+    """几何平均数（G-mean），仅忽略测试集中不存在的类别。"""
+    cm = confusion_matrix(y_true, y_pred, labels=labels)
+    supports = cm.sum(axis=1)
+
+    valid_mask = supports > 0
+    if not np.any(valid_mask):
         return 0.0
-    return float(np.prod(nonzero) ** (1.0 / len(nonzero)))
+
+    recalls = np.divide(
+        np.diag(cm)[valid_mask],
+        supports[valid_mask],
+        out=np.zeros_like(supports[valid_mask], dtype=float),
+        where=supports[valid_mask] > 0,
+    )
+    return float(np.prod(recalls) ** (1.0 / len(recalls)))
 
 
 def compute_auc(y_true, y_prob, n_classes) -> float:
@@ -223,7 +225,7 @@ class DMRARF:
 
         # ── 计算指标 ──────────────────────────
         macro_f1 = f1_score(y_true, y_pred, average='macro', zero_division=0)
-        gmean    = compute_gmean(y_true, y_pred)
+        gmean    = compute_gmean(y_true, y_pred, labels=list(range(n_classes)))
         auc      = compute_auc(y_true, y_prob, n_classes)
 
         # 每类 F1 和 Recall
