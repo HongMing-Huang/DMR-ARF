@@ -2,6 +2,7 @@
 data/loader.py
 统一数据集加载器 —— 所有数据集通过同一接口返回 (X_iter, y_iter) 的生成器
 当前支持：US_Accidents / Electricity / KDDCup99 / CoverType / Airlines / INSECTS
+          / Phishing / Bananas / ImageSegments
 """
 
 import pandas as pd
@@ -65,6 +66,50 @@ def _to_stream(X: pd.DataFrame, y: pd.Series):
     """把 DataFrame/Series 变成 River 风格的 (dict, label) 迭代器"""
     for i in range(len(X)):
         yield X.iloc[i].to_dict(), y.iloc[i]
+
+
+def _minority_classes(y: pd.Series):
+    counts = y.value_counts()
+    avg = counts.mean()
+    minority = counts[counts < avg].index.tolist()
+    if not minority:
+        minority = [counts.idxmin()]
+    return [int(c) for c in minority]
+
+
+def _load_river_dataset(
+    dataset_cls,
+    name: str,
+    seed: int = 42,
+    shuffle: bool = False,
+    minority_classes: list = None,
+    class_names: list = None,
+):
+    dataset = dataset_cls()
+    data = list(dataset)
+    if shuffle:
+        rng = np.random.RandomState(seed)
+        rng.shuffle(data)
+
+    X = pd.DataFrame([x for x, _ in data])
+    X = _encode_dataframe(X)
+
+    le = LabelEncoder()
+    y = pd.Series(le.fit_transform([label for _, label in data]))
+
+    split = int(len(X) * 0.8)
+    X_train, X_test = X.iloc[:split], X.iloc[split:]
+    y_train, y_test = y.iloc[:split], y.iloc[split:]
+
+    info = {
+        'name': name,
+        'n_samples': len(X),
+        'n_features': X.shape[1],
+        'n_classes': int(y.nunique()),
+        'minority_classes': minority_classes or _minority_classes(y),
+        'class_names': class_names or [str(c) for c in le.classes_],
+    }
+    return _to_stream(X_train, y_train), _to_stream(X_test, y_test), info
 
 
 # ─────────────────────────────────────────────
@@ -327,6 +372,40 @@ def load_insects(path: str = None):
     return _to_stream(X_train, y_train), _to_stream(X_test, y_test), info
 
 
+def load_phishing(seed: int = 42):
+    from river.datasets import Phishing
+    return _load_river_dataset(
+        Phishing,
+        'Phishing',
+        seed=seed,
+        minority_classes=[1],
+        class_names=['Legitimate', 'Phishing'],
+    )
+
+
+def load_bananas(seed: int = 42):
+    from river.datasets import Bananas
+    return _load_river_dataset(
+        Bananas,
+        'Bananas',
+        seed=seed,
+        minority_classes=[1],
+        class_names=['False', 'True'],
+    )
+
+
+def load_image_segments(seed: int = 42):
+    from river.datasets import ImageSegments
+    return _load_river_dataset(
+        ImageSegments,
+        'ImageSegments',
+        seed=seed,
+        shuffle=True,
+        minority_classes=[1, 2, 3],
+        class_names=[str(i) for i in range(7)],
+    )
+
+
 # ─────────────────────────────────────────────
 # 统一注册表 —— 在 run_all.py 中用名字调用
 # ─────────────────────────────────────────────
@@ -337,4 +416,7 @@ DATASET_REGISTRY = {
     'CoverType':    load_covertype,
     'Airlines':     load_airlines,
     'INSECTS':      load_insects,
+    'Phishing':      load_phishing,
+    'Bananas':       load_bananas,
+    'ImageSegments': load_image_segments,
 }

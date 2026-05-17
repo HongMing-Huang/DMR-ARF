@@ -39,6 +39,10 @@ CONFIG = {
         'Electricity',
         'KDDCup99',
         'CoverType',
+        'Phishing',
+        'Bananas',
+        'ImageSegments',
+        'INSECTS',
         # 'Airlines',   # 取消注释前请先下载数据
     ],
 

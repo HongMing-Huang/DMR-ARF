@@ -129,7 +129,13 @@ def run_leveraging_bagging(train_stream, test_stream, dataset_info, verbose=True
 # ─────────────────────────────────────────────
 def run_arf_oversampling(train_stream, test_stream, dataset_info, verbose=True):
     base_model = forest.ARFClassifier(n_models=30, seed=42, leaf_prediction="nba")
-    model = imblearn.RandomOverSampler(model=base_model, seed=42)
+    n_classes = dataset_info['n_classes']
+    desired_dist = {c: 1 / n_classes for c in range(n_classes)}
+    model = imblearn.RandomOverSampler(
+        classifier=base_model,
+        desired_dist=desired_dist,
+        seed=42,
+    )
     return _run_prequential(
         model, train_stream, test_stream, dataset_info,
         model_name='ARF_OverSampling', verbose=verbose
