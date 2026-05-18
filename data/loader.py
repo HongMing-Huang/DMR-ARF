@@ -7,11 +7,14 @@ data/loader.py
 
 import pandas as pd
 import numpy as np
+import random
 from pathlib import Path
 from sklearn.datasets import fetch_kddcup99, fetch_covtype
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 
 DATA_DIR = Path(__file__).parent  # data/ 目录
+US_ACCIDENTS_RAW_PATH = DATA_DIR / 'US_Accidents_March23.csv'
+US_ACCIDENTS_READY_PATH = DATA_DIR / 'accidents_model_ready.csv'
 ELECTRICITY_PATH = DATA_DIR / 'electricity.csv'
 KDDCUP99_PATH = DATA_DIR / 'kddcup99_10_data.gz'
 COVTYPE_PATH = DATA_DIR / 'covtype.data.gz'
@@ -112,6 +115,70 @@ def _load_river_dataset(
     return _to_stream(X_train, y_train), _to_stream(X_test, y_test), info
 
 
+def _prepare_us_accidents(
+    raw_path: Path = US_ACCIDENTS_RAW_PATH,
+    output_path: Path = US_ACCIDENTS_READY_PATH,
+    sample_rate: float = 0.05,
+    seed: int = 42,
+) -> Path:
+    rng = random.Random(seed)
+    df = pd.read_csv(
+        raw_path,
+        skiprows=lambda row: row > 0 and rng.random() > sample_rate,
+    )
+
+    cols_to_drop = [
+        'End_Lat', 'End_Lng', 'Wind_Chill(F)', 'Precipitation(in)',
+        'Description', 'Street', 'Zipcode', 'Airport_Code',
+        'ID', 'Country', 'Source',
+    ]
+    df = df.drop(columns=cols_to_drop, errors='ignore')
+
+    numeric_cols = [
+        'Temperature(F)', 'Humidity(%)', 'Visibility(mi)',
+        'Pressure(in)', 'Wind_Speed(mph)',
+    ]
+    for col in numeric_cols:
+        if col in df.columns:
+            df[col] = df[col].fillna(df[col].median())
+
+    text_cols = [
+        'Weather_Condition', 'Wind_Direction', 'Weather_Timestamp',
+        'City', 'Timezone', 'Sunrise_Sunset', 'Civil_Twilight',
+        'Nautical_Twilight', 'Astronomical_Twilight',
+    ]
+    for col in text_cols:
+        if col in df.columns:
+            df[col] = df[col].fillna(df[col].mode()[0])
+
+    df['Start_Time'] = pd.to_datetime(df['Start_Time'], format='mixed')
+    df = df.sort_values('Start_Time').reset_index(drop=True)
+    df['Hour'] = df['Start_Time'].dt.hour
+    df['Weekday'] = df['Start_Time'].dt.dayofweek
+    df['Month'] = df['Start_Time'].dt.month
+
+    df = df.drop(columns=['Start_Time', 'End_Time', 'Weather_Timestamp'], errors='ignore')
+    df = df.drop(columns=['County', 'City', 'Weather_Condition'], errors='ignore')
+
+    day_night_cols = [
+        'Sunrise_Sunset', 'Civil_Twilight',
+        'Nautical_Twilight', 'Astronomical_Twilight',
+    ]
+    for col in day_night_cols:
+        if col in df.columns:
+            df[col] = df[col].map({'Day': 1, 'Night': 0})
+
+    bool_cols = df.select_dtypes(include=['bool']).columns
+    for col in bool_cols:
+        df[col] = df[col].astype(int)
+
+    onehot_cols = [c for c in ['Wind_Direction', 'State', 'Timezone'] if c in df.columns]
+    df = pd.get_dummies(df, columns=onehot_cols, drop_first=True)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    df.to_csv(output_path, index=False)
+    return output_path
+
+
 # ─────────────────────────────────────────────
 # 各数据集加载函数
 # ─────────────────────────────────────────────
@@ -122,7 +189,16 @@ def load_us_accidents(path: str = None, sample_frac: float = 1.0, seed: int = 42
     返回：(stream_generator, minority_classes, n_classes, dataset_info)
     """
     if path is None:
-        path = DATA_DIR / 'accidents_model_ready.csv'
+        path = US_ACCIDENTS_READY_PATH
+        if not path.exists() and US_ACCIDENTS_RAW_PATH.exists():
+            path = _prepare_us_accidents(seed=seed)
+
+    if not Path(path).exists():
+        raise FileNotFoundError(
+            f"US Accidents data not found: {path}\n"
+            "Place accidents_model_ready.csv in data/, or place "
+            "US_Accidents_March23.csv in data/ so it can be prepared automatically."
+        )
 
     df = pd.read_csv(path)
     df = _encode_dataframe(df)

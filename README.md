@@ -1,7 +1,6 @@
 # DMR-ARF: Dynamic Memory Reservoir-driven Adaptive Random Forest
 
 
-
 ## Overview
 
 DMR-ARF is an online streaming classifier designed for imbalanced data streams with concept drift. It extends Adaptive Random Forest (ARF) with a class-stratified replay buffer that periodically re-exposes the model to rare-class samples, preventing minority-class forgetting without introducing temporal data leakage.
@@ -34,6 +33,35 @@ pip install -r requirements.txt
 
 ---
 
+## Reproducibility
+
+The repository intentionally does not include datasets, generated results, figures, virtual environments, or IDE files. A fresh clone contains only source code, dependency metadata, README, license, and Git ignore rules.
+
+**Quick reproducible run without local data files:**
+
+```bash
+python experiments/run_all.py
+```
+
+By default, `run_all.py` runs datasets that are available through `river` and do not require files in `data/`: `Electricity`, `Phishing`, `Bananas`, and `ImageSegments`.
+
+**Full paper reproduction:**
+
+Prepare the external datasets below under `data/`, then edit `CONFIG['DATASETS']` in `experiments/run_all.py` to include the full list shown in that file.
+
+| Dataset | Required file | Notes |
+|---------|---------------|-------|
+| US Accidents | `data/US_Accidents_March23.csv` or `data/accidents_model_ready.csv` | Download the raw Kaggle CSV. If only the raw file is present, `data/loader.py` automatically creates `accidents_model_ready.csv` using the fixed seed and preprocessing pipeline. |
+| INSECTS | `data/INSECTS-abrupt_balanced_norm.csv` | Required only for the full multi-dataset run. |
+| Airlines | `data/airlines.csv` | Optional; disabled in the default configuration. |
+| KDDCup99 | `data/kddcup99_10_data.gz` | Optional local cache; otherwise fetched through scikit-learn. |
+| CoverType | `data/covtype.data.gz` | Optional local cache; otherwise fetched through scikit-learn. |
+| Electricity | `data/electricity.csv` | Optional local cache; otherwise loaded from `river`. |
+
+Generated outputs are written to `results/`, which is ignored by Git.
+
+---
+
 ## Project Structure
 
 ```
@@ -47,8 +75,8 @@ DMR-ARF/
 │   ├── run_all.py           # Main experiment runner
 │   ├── ablation.py          # Hyperparameter ablation study
 │   └── stats_test.py        # Friedman + Nemenyi statistical tests
-├── results/                 # Output figures and tables
 ├── requirements.txt
+├── LICENSE
 └── README.md
 ```
 
@@ -56,7 +84,7 @@ DMR-ARF/
 
 ## Usage
 
-**Run main experiments (US Accidents dataset):**
+**Run the default reproducible experiment set:**
 
 ```bash
 python experiments/run_all.py
@@ -68,9 +96,7 @@ python experiments/run_all.py
 python experiments/ablation.py
 ```
 
-**Dataset:** The US Accidents dataset is publicly available at  
-https://www.kaggle.com/datasets/sobhanmoosavi/us-accidents  
-Download and place the CSV file under `data/` before running.
+The ablation study uses US Accidents, so it requires either `data/US_Accidents_March23.csv` or `data/accidents_model_ready.csv`.
 
 ---
 

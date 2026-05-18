@@ -13,11 +13,8 @@ experiments/run_all.py
 """
 
 import sys
-import json
 import time
-import importlib
 from pathlib import Path
-from dataclasses import asdict
 
 import pandas as pd
 
@@ -33,17 +30,16 @@ from models.baselines import BASELINE_REGISTRY
 # 实验配置（只改这里）
 # ─────────────────────────────────────────────
 CONFIG = {
-    # 要测试的数据集（确保对应数据文件已存在）
+    # Quick reproducible run: no local data files are required.
+    # For the full paper run, replace this with:
+    # ['US_Accidents', 'Electricity', 'KDDCup99', 'CoverType',
+    #  'Phishing', 'Bananas', 'ImageSegments', 'INSECTS']
+    # after preparing the external data files listed in README.md.
     'DATASETS': [
-        'US_Accidents',
         'Electricity',
-        'KDDCup99',
-        'CoverType',
         'Phishing',
         'Bananas',
         'ImageSegments',
-        'INSECTS',
-        # 'Airlines',   # 取消注释前请先下载数据
     ],
 
     # 要对比的基线
