@@ -7,7 +7,7 @@ DMR-ARF is an online streaming classifier designed for imbalanced data streams w
 
 **Three key contributions:**
 1. Empirical evidence of temporal data leakage in static SMOTE applied to streaming traffic data
-2. The DMR mechanism: per-class replay buffers with recency-biased random replacement
+2. The DMR mechanism: per-class sliding-window replay buffers (FIFO eviction) with periodic random experience replay
 3. Rigorous prequential evaluation that strictly respects chronological order
 
 **Main result:** On 385,000+ real-world US accident records, DMR-ARF raises fatal-accident (Severity 1) recall from 0% to 44% compared with the streaming baseline, while remaining the only streaming method with G-mean > 0.
