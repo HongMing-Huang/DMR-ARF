@@ -10,7 +10,6 @@ accidents_model_ready.csv
 US_Accidents_March23.csv
 *.log
 run_log*.txt
-generate_figures.py
 __pycache__/
 *.pyc
 .DS_Store
