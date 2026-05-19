@@ -171,7 +171,7 @@ class DMRARF:
         dataset_name = dataset_info['name']
         n_classes    = dataset_info['n_classes']
 
-        rolling_f1   = metrics.MacroF1()
+        rolling_f1   = metrics.Rolling(metrics.MacroF1(), window_size=rolling_window)
         rolling_log  = []
         step_counter = 0
         n_train      = 0

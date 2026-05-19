@@ -16,7 +16,10 @@ def _run_prequential(model, train_stream, test_stream, dataset_info,
     """通用 Prequential 评估框架，所有流式基线共用"""
     from river import metrics as river_metrics
     n_classes = dataset_info['n_classes']
-    rolling_f1 = river_metrics.MacroF1()
+    rolling_f1 = river_metrics.Rolling(
+        river_metrics.MacroF1(),
+        window_size=rolling_window
+    )
     rolling_log = []
     n_train = 0
 
